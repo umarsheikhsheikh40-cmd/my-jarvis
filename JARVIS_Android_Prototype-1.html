@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06111f">
+<title>JARVIS — Personal Assistant</title>
+<style>
+:root{color-scheme:dark;--cyan:#62eaff;--blue:#1c8cff;--bg:#050b14;--panel:#0b1727}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 20%,#102b45 0,#050b14 48%,#02050a 100%);color:#e9faff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+main{max-width:760px;margin:auto;padding:24px 18px 40px}
+header{text-align:center;padding-top:12px}
+.eyebrow{letter-spacing:.35em;font-size:.72rem;color:#83c9e7}
+h1{font-weight:500;letter-spacing:.18em;margin:10px 0 4px;font-size:clamp(2rem,9vw,3.6rem);text-shadow:0 0 22px #168bdc}
+.sub{color:#91afc4;font-size:.92rem}
+.core{width:210px;height:210px;border-radius:50%;margin:28px auto 20px;display:grid;place-items:center;position:relative;border:1px solid #4adfff88;box-shadow:0 0 30px #118bca33,inset 0 0 28px #118bca22}
+.core:before,.core:after{content:"";position:absolute;border-radius:50%;border:1px solid #42d9ff88}
+.core:before{inset:12px;animation:spin 14s linear infinite;border-top-color:transparent}
+.core:after{inset:27px;border-style:dashed;animation:spin 22s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core button{width:112px;height:112px;border-radius:50%;border:1px solid #7cecff;background:radial-gradient(circle,#123b59,#06121f 70%);color:var(--cyan);font-size:1rem;letter-spacing:.12em;box-shadow:0 0 28px #1ba9ff44;cursor:pointer}
+.core.listening{box-shadow:0 0 45px #20dfff88,inset 0 0 40px #20dfff44}
+.status{text-align:center;color:var(--cyan);min-height:24px;font-size:.9rem}
+.card{background:#091524d9;border:1px solid #4bc8f333;border-radius:16px;padding:16px;margin-top:16px;box-shadow:0 12px 30px #0002}
+.label{font-size:.72rem;letter-spacing:.15em;color:#78b9d7;text-transform:uppercase;margin-bottom:9px}
+#transcript{min-height:26px;white-space:pre-wrap;overflow-wrap:anywhere}
+#reply{line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.row{display:flex;gap:8px;margin-top:12px}
+input{min-width:0;flex:1;background:#030b13;border:1px solid #31536b;border-radius:10px;padding:13px;color:white;font:inherit}
+.row button,.actions button{border:1px solid #3f8fb2;background:#10283b;color:#dffaff;border-radius:10px;padding:12px 14px;font:inherit;cursor:pointer}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.small{font-size:.82rem;color:#88a7bc;line-height:1.5}
+footer{text-align:center;color:#66879c;font-size:.76rem;margin-top:22px}
+button:focus,input:focus{outline:2px solid var(--cyan);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">PERSONAL AI INTERFACE</div>
+<h1>J.A.R.V.I.S.</h1>
+<div class="sub">Just A Rather Very Intelligent System</div>
+</header>
+<div class="core" id="core"><button id="mic" aria-label="Start voice input">TAP TO<br> SPEAK</button></div>
+<div class="status" id="status">System ready · Tap the core to speak</div>
+<section class="card"><div class="label">You said</div><div id="transcript">Your voice command will appear here.</div></section>
+<section class="card"><div class="label">JARVIS response</div><div id="reply">Good evening. JARVIS is ready. Tap the glowing button and speak a command.</div></section>
+<section class="card">
+<div class="label">Type a command</div>
+<form class="row" id="form"><input id="typed" autocomplete="off" placeholder="Try: open YouTube"><button type="submit">Send</button></form>
+</section>
+<section class="card">
+<div class="label">Quick commands</div>
+<div class="actions">
+<button data-cmd="What can you do?">Help</button>
+<button data-cmd="Open YouTube">Open YouTube</button>
+<button data-cmd="Open WhatsApp">Open WhatsApp</button>
+<button data-cmd="What time is it?">Time</button>
+<button data-cmd="Tell me a joke">Joke</button>
+<button data-cmd="Stop speaking">Stop voice</button>
+</div>
+</section>
+<section class="card">
+<div class="label">Voice troubleshooting</div>
+<div class="small">If the microphone button does not hear you, try the steps below. Voice recognition works only in supported browsers and secure contexts; opening a downloaded file directly may prevent it from working.</div>
+<div class="actions" style="margin-top:10px">
+<button id="voiceHelp">Check voice support</button>
+<button id="testVoice">Test speaker</button>
+</div>
+<div id="voiceInfo" class="small" style="margin-top:10px"></div>
+</section>
+<section class="card small">
+<strong>First prototype:</strong> Voice recognition depends on your browser and may use an online speech service. This version can speak replies and handle simple commands; it is not yet connected to a full AI model and cannot continuously listen for “Hey Jarvis” while closed. Never enter passwords or private information here.
+</section>
+<footer>JARVIS prototype · Built for your Android phone</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const statusEl=$('status'), transcript=$('transcript'), reply=$('reply'), core=$('core');
+function speak(text){
+  if(!('speechSynthesis' in window)){statusEl.textContent='Speech output is not supported in this browser.';return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.rate=0.96;u.pitch=0.88;
+  speechSynthesis.speak(u);
+}
+function answer(raw){
+  const q=raw.trim(), s=q.toLowerCase();
+  transcript.textContent=q||'(no command)';
+  let r='';
+  if(!q) r='I did not catch a command. Please try again.';
+  else if(s.includes('what can you do')||s==='help') r='I can respond by voice, tell the time and date, open supported websites, and handle a few simple commands. We can add an AI connection and more phone controls in the next version.';
+  else if(s.includes('open youtube')) {r='Opening YouTube, sir.';window.open('https://www.youtube.com/','_blank');}
+  else if(s.includes('open whatsapp')) {r='Opening WhatsApp. If the app does not open, your browser may show WhatsApp Web.';window.location.href='https://wa.me/';}
+  else if(s.includes('open google')||s.includes('search the web')) {r='Opening Google search.';window.open('https://www.google.com/','_blank');}
+  else if(s.includes('time')) {r='The time on your phone is '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'.';}
+  else if(s.includes('date')||s.includes('today')) {r='Today is '+new Date().toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'.';}
+  else if(s.includes('joke')) {r='Why did the computer go to the doctor? Because it had a virus. I hope that made you smile, sir.';}
+  else if(s.includes('stop speaking')||s==='stop') {speechSynthesis.cancel();r='Voice output stopped.';}
+  else if(s.includes('hello')||s.includes('hi jarvis')||s==='hello') {r='Hello, sir. I am online and ready to help.';}
+  else if(s.includes('your name')) {r='I am JARVIS, your personal assistant prototype.';}
+  else {r='I heard: '+q+'. My basic prototype does not have a full AI brain connected yet. The next step is to connect an AI service securely so I can answer open-ended questions.';}
+  reply.textContent=r;
+  if(!(s.includes('stop speaking')||s==='stop')) speak(r);
+  statusEl.textContent='Ready for your next command';
+}
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('mic').addEventListener('click',()=>{
+  if(!SpeechRecognition){statusEl.textContent='Voice recognition is unavailable here. Try opening this file in Chrome, or type a command below.';return}
+  const rec=new SpeechRecognition();rec.lang='en-IN';rec.interimResults=false;rec.maxAlternatives=1;
+  rec.onstart=()=>{statusEl.textContent='Listening… speak now';core.classList.add('listening')};
+  rec.onresult=e=>answer(e.results[0][0].transcript);
+  rec.onerror=e=>{statusEl.textContent='Could not hear you ('+e.error+'). Check microphone permission or type below.'};
+  rec.onend=()=>core.classList.remove('listening');
+  try{rec.start()}catch(e){statusEl.textContent='Please wait a moment and try again.'}
+});
+$('form').addEventListener('submit',e=>{e.preventDefault();const v=$('typed').value; $('typed').value='';answer(v)});
+$('voiceHelp').addEventListener('click',()=>{
+  const supported=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+  const secure=window.isSecureContext;
+  let msg='Browser: '+navigator.userAgent+'\\nSpeech recognition API: '+(supported?'supported':'not supported')+'\\nSecure context: '+(secure?'yes':'no')+'\\nMicrophone permission: check Chrome site settings.';
+  if(!supported) msg+='\\nTry opening this file in the latest Chrome. If it still says unsupported, local-file voice input is not available in this browser.';
+  if(!secure) msg+='\\nBecause this is a downloaded file (file://), voice recognition may be blocked. It usually needs a supported secure web page (HTTPS).';
+  $('voiceInfo').textContent=msg;
+  statusEl.textContent=supported?'Voice API detected; check microphone permission.':'This browser does not expose voice recognition for this file.';
+});
+$('testVoice').addEventListener('click',()=>speak('Audio test. If you can hear me, JARVIS speech output is working.'));
+document.querySelectorAll('[data-cmd]').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.cmd)));
+</script>
+</body>
+</html>
